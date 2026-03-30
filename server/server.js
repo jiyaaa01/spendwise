@@ -2,40 +2,41 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require("path");
 
 dotenv.config();
 
-require('dotenv').config();
-
-console.log("ENV CHECK:", process.env.MONGO_URI);
-
 const app = express();
 
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:3000', credentials: true }));
+// Middleware
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
 
-// Routes
+// API Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/expenses', require('./routes/expenses'));
 
 // Health check
-app.get('/', (req, res) => res.json({ message: 'SpendWise API running ✅' }));
+app.get('/api', (req, res) => res.json({ message: 'SpendWise API running ✅' }));
 
-// Connect to MongoDB and start server
-console.log("URI:", process.env.MONGO_URI);
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('MongoDB connected ✅');
-    app.listen(process.env.PORT || 5000, () =>
-      console.log(`Server running on port ${process.env.PORT || 5000} ✅`)
-    );
-  })
-  .catch(err => console.error('MongoDB connection error:', err));
-
-  const path = require("path");
-
+// ✅ Serve frontend (IMPORTANT - place BEFORE listen)
 app.use(express.static(path.join(__dirname, "../client/build")));
 
 app.get("*", (req, res) => {
   res.sendFile(path.resolve(__dirname, "../client/build", "index.html"));
 });
+
+// Connect DB + Start Server
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log('MongoDB connected ✅');
+
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT} ✅`);
+    });
+  })
+  .catch(err => console.error('MongoDB connection error:', err));
