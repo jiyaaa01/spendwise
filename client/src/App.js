@@ -28,7 +28,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
   { name: 'Other',          color: '#94A3B8', emoji: '📦' },
 ];
 
-const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'CAD', 'AUD', 'NZD'];
+export const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'CAD', 'AUD', 'NZD'];
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 export default function App() {
@@ -205,7 +205,7 @@ export default function App() {
 
   // Sub-pages
   if (page === 'profile') return <ProfilePage onBack={() => setPage('dashboard')} />;
-  if (page === 'budget') return <BudgetPage onBack={() => setPage('dashboard')} expenses={allExpenses} />;
+  if (page === 'budget') return <BudgetPage onBack={() => setPage('dashboard')} expenses={allExpenses} convert={convert} currencies={CURRENCIES} />;
 
   return (
     <div className="app">

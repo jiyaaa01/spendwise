@@ -1,19 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, AlertTriangle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';  // ✅ add this
 import API from '../api';
 
 const CATEGORIES = [
-  { name: 'Food & Dining',  color: '#FF6B6B', emoji: '🍜' },
-  { name: 'Transport',      color: '#FFD93D', emoji: '🚌' },
-  { name: 'Shopping',       color: '#6BCB77', emoji: '🛍️' },
-  { name: 'Entertainment',  color: '#4D96FF', emoji: '🎬' },
-  { name: 'Health',         color: '#FF9F1C', emoji: '💊' },
-  { name: 'Education',      color: '#A855F7', emoji: '📚' },
-  { name: 'Utilities',      color: '#06B6D4', emoji: '💡' },
-  { name: 'Other',          color: '#94A3B8', emoji: '📦' },
+  { name: 'Food & Dining', color: '#FF6B6B', emoji: '🍜' },
+  { name: 'Transport', color: '#FFD93D', emoji: '🚌' },
+  { name: 'Shopping', color: '#6BCB77', emoji: '🛍️' },
+  { name: 'Entertainment', color: '#4D96FF', emoji: '🎬' },
+  { name: 'Health', color: '#FF9F1C', emoji: '💊' },
+  { name: 'Education', color: '#A855F7', emoji: '📚' },
+  { name: 'Utilities', color: '#06B6D4', emoji: '💡' },
+  { name: 'Other', color: '#94A3B8', emoji: '📦' },
 ];
 
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  AED: 'د.إ',
+  SGD: 'S$',
+  CAD: 'CA$',
+  AUD: 'A$',
+  NZD: 'NZ$',
+};
+
 export default function BudgetPage({ onBack, expenses }) {
+  const { user } = useAuth();  // ✅ get user from context
   const [budgets, setBudgets] = useState({});
   const [saved, setSaved] = useState(false);
 
@@ -21,6 +35,8 @@ export default function BudgetPage({ onBack, expenses }) {
     const stored = localStorage.getItem('sw_budgets');
     if (stored) setBudgets(JSON.parse(stored));
   }, []);
+
+  const currencySymbol = CURRENCY_SYMBOLS[user?.currency] || '₹';  // ✅ read from user
 
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -64,7 +80,7 @@ export default function BudgetPage({ onBack, expenses }) {
                   <span className="budget-cat-name">{cat.name}</span>
                 </div>
                 <div className="budget-input-wrap">
-                  <span className="budget-rupee">₹</span>
+                  <span className="budget-rupee">{currencySymbol}</span>
                   <input
                     type="number"
                     className="budget-input"
@@ -88,15 +104,15 @@ export default function BudgetPage({ onBack, expenses }) {
                     />
                   </div>
                   <div className="budget-meta">
-                    <span>₹{spent.toLocaleString('en-IN')} spent</span>
+                    <span>{currencySymbol}{spent.toLocaleString('en-IN')} spent</span>
                     {isOver && (
-                      <span className="budget-over"><AlertTriangle size={12} /> Over by ₹{(spent - budget).toLocaleString('en-IN')}</span>
+                      <span className="budget-over"><AlertTriangle size={12} /> Over by {currencySymbol}{(spent - budget).toLocaleString('en-IN')}</span>
                     )}
                     {isWarning && (
                       <span className="budget-warning"><AlertTriangle size={12} /> {Math.round(pct)}% used</span>
                     )}
                     {!isOver && !isWarning && (
-                      <span className="budget-ok">₹{(budget - spent).toLocaleString('en-IN')} left</span>
+                      <span className="budget-ok">{currencySymbol}{(budget - spent).toLocaleString('en-IN')} left</span>
                     )}
                   </div>
                 </>
