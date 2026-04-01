@@ -55,7 +55,7 @@ export default function App() {
   const [filterMax, setFilterMax] = useState('');
 
   const [form, setForm] = useState({
-    title: '', amount: '', category: CATEGORIES[0].name,
+    title: '', amount: '', currency: 'INR', category: CATEGORIES[0].name,
     date: new Date().toISOString().split('T')[0], note: ''
   });
 
@@ -141,10 +141,17 @@ export default function App() {
     e.preventDefault();
     if (!form.title || !form.amount || isNaN(form.amount) || Number(form.amount) <= 0) return;
     try {
-      const res = await API.post('/expenses', { ...form, amount: Number(form.amount) });
+      let finalAmount = Number(form.amount);
+      if (form.currency && form.currency !== 'INR') {
+        const converted = convert(finalAmount, form.currency, 'INR');
+        if (converted) {
+          finalAmount = Number(converted);
+        }
+      }
+      const res = await API.post('/expenses', { ...form, amount: finalAmount });
       setExpenses(prev => [res.data, ...prev]);
       setAllExpenses(prev => [res.data, ...prev]);
-      setForm({ title: '', amount: '', category: CATEGORIES[0].name, date: new Date().toISOString().split('T')[0], note: '' });
+      setForm({ title: '', amount: '', currency: currency || 'INR', category: CATEGORIES[0].name, date: new Date().toISOString().split('T')[0], note: '' });
       setShowForm(false);
     } catch (err) { console.error(err); }
   };
@@ -272,7 +279,7 @@ export default function App() {
           </div>
           <div className="top-actions">
             <button className="icon-btn" onClick={exportCSV} title="Export CSV"><Download size={18} /></button>
-            <button className="add-btn" onClick={() => setShowForm(true)}><Plus size={18} /> Add Expense</button>
+            <button className="add-btn" onClick={() => { setForm(f => ({...f, currency: currency || 'INR'})); setShowForm(true); }}><Plus size={18} /> Add Expense</button>
           </div>
         </header>
 
@@ -367,7 +374,7 @@ export default function App() {
               <span className="empty-emoji">{search || filterCategory !== 'All' ? '🔍' : '💸'}</span>
               <p>{search || filterCategory !== 'All' ? 'No matching transactions' : 'No expenses this month'}</p>
               {!search && filterCategory === 'All' && (
-                <button className="add-btn-sm" onClick={() => setShowForm(true)}>Add your first expense</button>
+                <button className="add-btn-sm" onClick={() => { setForm(f => ({...f, currency: currency || 'INR'})); setShowForm(true); }}>Add your first expense</button>
               )}
             </div>
           ) : (
@@ -409,8 +416,17 @@ export default function App() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Amount (INR)</label>
-                  <input type="number" placeholder="0.00" min="0" step="0.01" value={form.amount} onChange={e => setForm(f => ({...f, amount: e.target.value}))} required />
+                  <label>Amount</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <select 
+                      value={form.currency || 'INR'} 
+                      onChange={e => setForm(f => ({...f, currency: e.target.value}))}
+                      style={{ padding: '10px 8px', borderRadius: '10px', border: '1.5px solid var(--border)', background: '#FAFAFA', outline: 'none', fontFamily: '"DM Sans", sans-serif', color: 'var(--text)' }}
+                    >
+                      {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                    <input type="number" placeholder="0.00" min="0" step="0.01" value={form.amount} onChange={e => setForm(f => ({...f, amount: e.target.value}))} required style={{ flex: 1, minWidth: 0 }} />
+                  </div>
                 </div>
                 <div className="form-group">
                   <label>Date</label>
