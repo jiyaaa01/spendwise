@@ -7,7 +7,8 @@ import {
 import {
   Plus, Trash2, TrendingUp, TrendingDown, Wallet,
   RefreshCw, ChevronDown, X, IndianRupee, ArrowLeftRight,
-  LogOut, User, Download, Search, SlidersHorizontal, PiggyBank
+  LogOut, User, Download, Search, SlidersHorizontal, PiggyBank, Pencil,
+  ArrowLeft, History, ArrowUpRight, DollarSign, Euro, PoundSterling
 } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import API from './api';
@@ -17,21 +18,20 @@ import './App.css';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
-  const CATEGORIES = [
-  { name: 'Food & Dining',  color: '#FF6B6B', emoji: '🍜' },
-  { name: 'Transport',      color: '#FFD93D', emoji: '🚌' },
-  { name: 'Shopping',       color: '#6BCB77', emoji: '🛍️' },
-  { name: 'Entertainment',  color: '#4D96FF', emoji: '🎬' },
-  { name: 'Health',         color: '#FF9F1C', emoji: '💊' },
-  { name: 'Education',      color: '#A855F7', emoji: '📚' },
-  { name: 'Utilities',      color: '#06B6D4', emoji: '💡' },
-  { name: 'Other',          color: '#94A3B8', emoji: '📦' },
+const CATEGORIES = [
+  { name: 'Food & Dining', color: '#FFB7B2', emoji: '🍜' },
+  { name: 'Transport', color: '#5cb3fbff', emoji: '🚌' },
+  { name: 'Shopping', color: '#fcc5efff', emoji: '🛍️' },
+  { name: 'Entertainment', color: '#ebeb4fff', emoji: '🎬' },
+  { name: 'Health', color: '#58e0eaff', emoji: '💊' },
+  { name: 'Education', color: '#e7898aff', emoji: '📚' },
+  { name: 'Utilities', color: '#83f46dff', emoji: '💡' },
+  { name: 'Other', color: 'rgba(204, 201, 192, 1)', emoji: '📦' },
 ];
 
 export const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'CAD', 'AUD', 'NZD'];
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-export default function App() {
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+git branch -M main
   const { user, logout, updateCurrency } = useAuth();
   const [expenses, setExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
@@ -46,11 +46,15 @@ export default function App() {
   const [activeYear, setActiveYear] = useState(new Date().getFullYear());
   const [deleteId, setDeleteId] = useState(null);
   const [expensesLoading, setExpensesLoading] = useState(false);
-  const [page, setPage] = useState('dashboard'); // dashboard | profile | budget
+  const [saved, setSaved] = useState(false);
+  const [page, setPage] = useState('dashboard'); // dashboard | profile | budget | transactions
+  const [editingId, setEditingId] = useState(null);
 
   // Search & filter state
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
+  const [filterMonth, setFilterMonth] = useState('Current Month');
+  const [filterYear, setFilterYear] = useState('Current Year');
   const [filterMin, setFilterMin] = useState('');
   const [filterMax, setFilterMax] = useState('');
 
@@ -108,12 +112,62 @@ export default function App() {
   const displayAmount = (amountINR) => {
     if (currency === 'INR') return `₹ ${Number(amountINR).toLocaleString('en-IN')}`;
     const converted = convert(amountINR, 'INR', currency);
-    const sym = { USD:'$', EUR:'€', GBP:'£', AED:'د.إ', SGD:'S$', CAD:'CA$', AUD:'A$', NZD:'NZ$' }[currency] || currency + ' ';
+    const sym = { USD: '$', EUR: '€', GBP: '£', AED: 'د.إ', SGD: 'S$', CAD: 'CA$', AUD: 'A$', NZD: 'NZ$' }[currency] || currency + ' ';
     return converted ? `${sym} ${Number(converted).toLocaleString()}` : `₹ ${Number(amountINR).toLocaleString('en-IN')}`;
   };
 
+  const startEdit = (exp) => {
+    const targetCurrency = currency || 'INR';
+    let formAmount = exp.amount;
+    let formCurrency = 'INR';
+
+    if (targetCurrency !== 'INR' && rates[targetCurrency]) {
+      const converted = convert(exp.amount, 'INR', targetCurrency);
+      if (converted) {
+        formAmount = converted;
+        formCurrency = targetCurrency;
+      }
+    } else if (targetCurrency === 'INR') {
+      formCurrency = 'INR';
+    }
+
+    setForm({
+      title: exp.title,
+      amount: formAmount,
+      currency: formCurrency,
+      category: exp.category,
+      date: new Date(exp.date).toISOString().split('T')[0],
+      note: exp.note || ''
+    });
+    setEditingId(exp._id);
+  };
+
   // Filtered transactions
-  const filteredExpenses = expenses.filter(e => {
+  const getBaseExpenses = () => {
+    let filtered = allExpenses;
+
+    // Apply Year Filter
+    if (filterYear === 'Current Year') {
+      filtered = filtered.filter(e => new Date(e.date).getFullYear() === activeYear);
+    } else if (filterYear !== 'All Years') {
+      filtered = filtered.filter(e => new Date(e.date).getFullYear() === Number(filterYear));
+    }
+
+    // Apply Month Filter
+    if (filterMonth === 'Current Month') {
+      filtered = filtered.filter(e => new Date(e.date).getMonth() === activeMonth);
+    } else if (filterMonth !== 'All Months') {
+      const monthIndex = MONTHS.indexOf(filterMonth);
+      filtered = filtered.filter(e => new Date(e.date).getMonth() === monthIndex);
+    }
+
+    return filtered;
+  };
+
+  const availableYears = [...new Set(allExpenses.map(e => new Date(e.date).getFullYear()))].sort((a, b) => b - a);
+  const currentBaseExpenses = getBaseExpenses();
+
+  const filteredExpenses = currentBaseExpenses.filter(e => {
     const matchSearch = e.title.toLowerCase().includes(search.toLowerCase()) ||
       e.category.toLowerCase().includes(search.toLowerCase()) ||
       (e.note && e.note.toLowerCase().includes(search.toLowerCase()));
@@ -137,22 +191,31 @@ export default function App() {
     }).reduce((s, e) => s + Number(e.amount), 0)
   );
 
-  const handleAdd = async (e) => {
+  const handleSaveExpense = async (e) => {
     e.preventDefault();
     if (!form.title || !form.amount || isNaN(form.amount) || Number(form.amount) <= 0) return;
     try {
       let finalAmount = Number(form.amount);
       if (form.currency && form.currency !== 'INR') {
         const converted = convert(finalAmount, form.currency, 'INR');
-        if (converted) {
-          finalAmount = Number(converted);
-        }
+        if (converted) finalAmount = Number(converted);
       }
-      const res = await API.post('/expenses', { ...form, amount: finalAmount });
-      setExpenses(prev => [res.data, ...prev]);
-      setAllExpenses(prev => [res.data, ...prev]);
+
+      if (editingId) {
+        const res = await API.put(`/expenses/${editingId}`, { ...form, amount: finalAmount });
+        setExpenses(prev => prev.map(exp => exp._id === editingId ? res.data : exp));
+        setAllExpenses(prev => prev.map(exp => exp._id === editingId ? res.data : exp));
+      } else {
+        const res = await API.post('/expenses', { ...form, amount: finalAmount });
+        setExpenses(prev => [res.data, ...prev]);
+        setAllExpenses(prev => [res.data, ...prev]);
+      }
+
       setForm({ title: '', amount: '', currency: currency || 'INR', category: CATEGORIES[0].name, date: new Date().toISOString().split('T')[0], note: '' });
       setShowForm(false);
+      setEditingId(null);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
     } catch (err) { console.error(err); }
   };
 
@@ -167,10 +230,10 @@ export default function App() {
 
   // Export to CSV
   const exportCSV = () => {
-    const headers = ['Title', 'Amount (INR)', 'Category', 'Date', 'Note'];
+    const headers = ['Title', `Amount (${currency})`, 'Category', 'Date', 'Note'];
     const rows = allExpenses.map(e => [
       `"${e.title}"`,
-      e.amount,
+      currency === 'INR' ? e.amount : (convert(e.amount, 'INR', currency) || e.amount),
       `"${e.category}"`,
       new Date(e.date).toLocaleDateString('en-IN'),
       `"${e.note || ''}"`
@@ -203,9 +266,169 @@ export default function App() {
 
   const convResult = convAmount && convert(Number(convAmount), convFrom, convTo);
 
+  const renderExpenseForm = (isInline = false) => (
+    <form onSubmit={handleSaveExpense} className={`expense-form ${isInline ? 'expense-form--inline' : ''}`}>
+      <div className="form-group">
+        <label>Title</label>
+        <input placeholder="e.g. Lunch at Subway" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label>Amount</label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <select
+              value={form.currency || 'INR'}
+              onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
+              style={{ padding: '10px 8px', borderRadius: '10px', border: '1.5px solid var(--border)', background: '#FAFAFA', outline: 'none', fontFamily: '"DM Sans", sans-serif', color: 'var(--text)' }}
+            >
+              {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+            </select>
+            <input type="number" placeholder="0.00" min="0" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required style={{ flex: 1, minWidth: 0 }} />
+          </div>
+        </div>
+        <div className="form-group">
+          <label>Date</label>
+          <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required />
+        </div>
+      </div>
+      <div className="form-group">
+        <label>Category</label>
+        <div className="cat-grid">
+          {CATEGORIES.map(c => (
+            <button type="button" key={c.name}
+              className={`cat-chip ${form.category === c.name ? 'active' : ''}`}
+              style={form.category === c.name ? { background: c.color, color: '#fff', borderColor: c.color } : {}}
+              onClick={() => setForm(f => ({ ...f, category: c.name }))}>
+              {c.emoji} {c.name}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="form-group">
+        <label>Note (optional)</label>
+        <input placeholder="Any details..." value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
+      </div>
+      <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+        <button type="submit" className="submit-btn" style={{ flex: 1 }}>{editingId ? 'Save Changes' : 'Add Expense'}</button>
+        {isInline && <button type="button" className="cancel-btn" onClick={() => setEditingId(null)} style={{ flex: 1 }}>Cancel</button>}
+      </div>
+    </form>
+  );
+
   // Sub-pages
   if (page === 'profile') return <ProfilePage onBack={() => setPage('dashboard')} />;
   if (page === 'budget') return <BudgetPage onBack={() => setPage('dashboard')} expenses={allExpenses} convert={convert} currencies={CURRENCIES} />;
+  if (page === 'transactions') {
+    return (
+      <div className="transaction-manager-page">
+        <div className="profile-header">
+          <button className="back-btn" onClick={() => setPage('dashboard')}><ArrowLeft size={18} /> Back</button>
+          <h1 className="page-title">Transaction Manager</h1>
+          <button className="icon-btn" onClick={exportCSV} title="Export CSV" style={{ marginLeft: 'auto' }}><Download size={18} /></button>
+        </div>
+
+        <p className="budget-sub">Search, filter, and manage all your expenses.</p>
+
+        {/* Search & Filter bar */}
+        <div className="search-bar">
+          <div className="search-input-wrap">
+            <Search size={16} className="search-icon" />
+            <input className="search-input" placeholder="Search transactions..." value={search} onChange={e => setSearch(e.target.value)} />
+            {search && <button className="search-clear" onClick={() => setSearch('')}><X size={14} /></button>}
+          </div>
+          <button className={`filter-toggle ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(s => !s)}>
+            <SlidersHorizontal size={16} /> Filters
+          </button>
+        </div>
+
+        {showFilters && (
+          <div className="filter-panel">
+            <div className="filter-group">
+              <label>Month</label>
+              <div className="select-wrap filter-select-wrap">
+                <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
+                  <option>Current Month</option>
+                  <option>All Months</option>
+                  {MONTHS.map(m => <option key={m}>{m}</option>)}
+                </select>
+                <ChevronDown size={13} className="select-icon" />
+              </div>
+            </div>
+            <div className="filter-group">
+              <label>Year</label>
+              <div className="select-wrap filter-select-wrap">
+                <select value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                  <option>Current Year</option>
+                  <option>All Years</option>
+                  {availableYears.map(y => <option key={y}>{y}</option>)}
+                </select>
+                <ChevronDown size={13} className="select-icon" />
+              </div>
+            </div>
+            <div className="filter-group">
+              <label>Category</label>
+              <div className="select-wrap filter-select-wrap">
+                <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+                  <option>All</option>
+                  {CATEGORIES.map(c => <option key={c.name}>{c.name}</option>)}
+                </select>
+                <ChevronDown size={13} className="select-icon" />
+              </div>
+            </div>
+            <div className="filter-group">
+              <label>Min Value</label>
+              <input type="number" placeholder="0" value={filterMin} onChange={e => setFilterMin(e.target.value)} className="filter-input" />
+            </div>
+            <div className="filter-group">
+              <label>Max Value</label>
+              <input type="number" placeholder="Any" value={filterMax} onChange={e => setFilterMax(e.target.value)} className="filter-input" />
+            </div>
+            <button className="filter-clear" onClick={() => { setFilterMonth('Current Month'); setFilterYear('Current Year'); setFilterCategory('All'); setFilterMin(''); setFilterMax(''); }}>
+              Clear Filters
+            </button>
+          </div>
+        )}
+
+        <div className="transactions-section">
+          {expensesLoading ? (
+            <div className="empty-state"><p>Loading transactions...</p></div>
+          ) : filteredExpenses.length === 0 ? (
+            <div className="empty-state">
+              <span className="empty-emoji">🔍</span>
+              <p>No matching transactions found</p>
+            </div>
+          ) : (
+            <div className="tx-list">
+              <div className="section-header">
+                <h3 className="section-title">History</h3>
+                <span className="tx-count">{filteredExpenses.length} items</span>
+              </div>
+              {filteredExpenses.map(exp => {
+                if (editingId === exp._id) {
+                  return <div key={exp._id}>{renderExpenseForm(true)}</div>;
+                }
+                const cat = catForName(exp.category);
+                return (
+                  <div key={exp._id} className="tx-item">
+                    <div className="tx-cat-dot" style={{ background: cat.color }}>{cat.emoji}</div>
+                    <div className="tx-info">
+                      <p className="tx-title">{exp.title}</p>
+                      <p className="tx-meta">{exp.category} · {new Date(exp.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    </div>
+                    <div className="tx-right">
+                      <p className="tx-amount">{displayAmount(exp.amount)}</p>
+                      <button className="tx-edit" onClick={() => startEdit(exp)} title="Edit"><Pencil size={14} /></button>
+                      <button className="tx-delete" onClick={() => setDeleteId(exp._id)}><Trash2 size={14} /></button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
@@ -214,7 +437,12 @@ export default function App() {
       {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <span className="logo-icon"><IndianRupee size={18} /></span>
+          <span className="logo-icon">
+            {currency === 'USD' || currency === 'NZD' || currency === 'CAD' || currency === 'AUD' || currency === 'SGD' ? <DollarSign size={18} /> :
+              currency === 'EUR' ? <Euro size={18} /> :
+                currency === 'GBP' ? <PoundSterling size={18} /> :
+                  <IndianRupee size={18} />}
+          </span>
           <span className="logo-text">SpendWise</span>
         </div>
 
@@ -278,10 +506,11 @@ export default function App() {
             <p className="page-sub">{MONTHS[activeMonth]} {activeYear}</p>
           </div>
           <div className="top-actions">
-            <button className="icon-btn" onClick={exportCSV} title="Export CSV"><Download size={18} /></button>
-            <button className="add-btn" onClick={() => { setForm(f => ({...f, currency: currency || 'INR'})); setShowForm(true); }}><Plus size={18} /> Add Expense</button>
+            <button className="add-btn" onClick={() => { setForm(f => ({ ...f, currency: currency || 'INR' })); setShowForm(true); }}><Plus size={18} /> Add Expense</button>
           </div>
         </header>
+
+        {saved && <div className="alert alert--success dashboard-alert"><span>✓</span> Transaction updated in database!</div>}
 
         {/* Stats */}
         <div className="stats-row">
@@ -289,7 +518,7 @@ export default function App() {
           <StatCard
             icon={<TrendingUp size={20} />}
             label="Biggest Category"
-            value={byCategory.length ? `${catForName([...byCategory].sort((a,b)=>b.total-a.total)[0].name).emoji} ${[...byCategory].sort((a,b)=>b.total-a.total)[0].name}` : '—'}
+            value={byCategory.length ? `${catForName([...byCategory].sort((a, b) => b.total - a.total)[0].name).emoji} ${[...byCategory].sort((a, b) => b.total - a.total)[0].name}` : '—'}
             color="pink"
           />
           <StatCard
@@ -315,89 +544,32 @@ export default function App() {
                 plugins: { legend: { display: false } },
                 scales: {
                   x: { grid: { display: false }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#94A3B8' } },
-                  y: { grid: { color: '#F1F5F9' }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#94A3B8', callback: v => `₹${v >= 1000 ? (v/1000).toFixed(0)+'k' : v}` } }
+                  y: {
+                    grid: { color: '#F1F5F9' },
+                    ticks: {
+                      font: { family: 'DM Sans', size: 11 },
+                      color: '#94A3B8',
+                      callback: v => `${{ USD: '$', EUR: '€', GBP: '£', AED: 'د.إ', SGD: 'S$', CAD: 'CA$', AUD: 'A$', NZD: 'NZ$' }[currency] || '₹'} ${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`
+                    }
+                  }
                 },
               }} />
             </div>
           </div>
         )}
 
-        {/* Search & Filter bar */}
-        <div className="search-bar">
-          <div className="search-input-wrap">
-            <Search size={16} className="search-icon" />
-            <input className="search-input" placeholder="Search transactions..." value={search} onChange={e => setSearch(e.target.value)} />
-            {search && <button className="search-clear" onClick={() => setSearch('')}><X size={14} /></button>}
+        {/* Transactions Call to Action */}
+        <div className="dashboard-cta">
+          <div className="cta-content">
+            <div className="cta-icon"><History size={24} /></div>
+            <div>
+              <h3 className="cta-title">Transaction History</h3>
+              <p className="cta-sub">Manage and filter through your {allExpenses.length} recorded expenses.</p>
+            </div>
           </div>
-          <button className={`filter-toggle ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(s => !s)}>
-            <SlidersHorizontal size={16} /> Filters
+          <button className="cta-btn" onClick={() => setPage('transactions')}>
+            Manage Transactions <ArrowUpRight size={18} />
           </button>
-        </div>
-
-        {showFilters && (
-          <div className="filter-panel">
-            <div className="filter-group">
-              <label>Category</label>
-              <div className="select-wrap filter-select-wrap">
-                <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
-                  <option>All</option>
-                  {CATEGORIES.map(c => <option key={c.name}>{c.name}</option>)}
-                </select>
-                <ChevronDown size={13} className="select-icon" />
-              </div>
-            </div>
-            <div className="filter-group">
-              <label>Min Amount (₹)</label>
-              <input type="number" placeholder="0" value={filterMin} onChange={e => setFilterMin(e.target.value)} className="filter-input" />
-            </div>
-            <div className="filter-group">
-              <label>Max Amount (₹)</label>
-              <input type="number" placeholder="Any" value={filterMax} onChange={e => setFilterMax(e.target.value)} className="filter-input" />
-            </div>
-            <button className="filter-clear" onClick={() => { setFilterCategory('All'); setFilterMin(''); setFilterMax(''); }}>
-              Clear Filters
-            </button>
-          </div>
-        )}
-
-        {/* Transactions */}
-        <div className="transactions-section">
-          <div className="section-header">
-            <h3 className="section-title">Transactions</h3>
-            <span className="tx-count">{filteredExpenses.length} of {expenses.length}</span>
-          </div>
-
-          {expensesLoading ? (
-            <div className="empty-state"><p>Loading...</p></div>
-          ) : filteredExpenses.length === 0 ? (
-            <div className="empty-state">
-              <span className="empty-emoji">{search || filterCategory !== 'All' ? '🔍' : '💸'}</span>
-              <p>{search || filterCategory !== 'All' ? 'No matching transactions' : 'No expenses this month'}</p>
-              {!search && filterCategory === 'All' && (
-                <button className="add-btn-sm" onClick={() => { setForm(f => ({...f, currency: currency || 'INR'})); setShowForm(true); }}>Add your first expense</button>
-              )}
-            </div>
-          ) : (
-            <div className="tx-list">
-              {filteredExpenses.map(exp => {
-                const cat = catForName(exp.category);
-                return (
-                  <div key={exp._id} className="tx-item">
-                    <div className="tx-cat-dot" style={{ background: cat.color }}>{cat.emoji}</div>
-                    <div className="tx-info">
-                      <p className="tx-title">{exp.title}</p>
-                      <p className="tx-meta">{exp.category} · {new Date(exp.date).toLocaleDateString('en-IN', { day:'numeric', month:'short' })}</p>
-                    </div>
-                    {exp.note && <p className="tx-note">{exp.note}</p>}
-                    <div className="tx-right">
-                      <p className="tx-amount">{displayAmount(exp.amount)}</p>
-                      <button className="tx-delete" onClick={() => setDeleteId(exp._id)}><Trash2 size={14} /></button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       </main>
 
@@ -406,31 +578,31 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setShowForm(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Add Expense</h2>
-              <button className="modal-close" onClick={() => setShowForm(false)}><X size={18} /></button>
+              <h2>{editingId ? 'Edit Expense' : 'Add Expense'}</h2>
+              <button className="modal-close" onClick={() => { setShowForm(false); setEditingId(null); }}><X size={18} /></button>
             </div>
-            <form onSubmit={handleAdd} className="expense-form">
+            <form onSubmit={handleSaveExpense} className="expense-form">
               <div className="form-group">
                 <label>Title</label>
-                <input placeholder="e.g. Lunch at Subway" value={form.title} onChange={e => setForm(f => ({...f, title: e.target.value}))} required />
+                <input placeholder="e.g. Lunch at Subway" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
               </div>
               <div className="form-row">
                 <div className="form-group">
                   <label>Amount</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <select 
-                      value={form.currency || 'INR'} 
-                      onChange={e => setForm(f => ({...f, currency: e.target.value}))}
+                    <select
+                      value={form.currency || 'INR'}
+                      onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
                       style={{ padding: '10px 8px', borderRadius: '10px', border: '1.5px solid var(--border)', background: '#FAFAFA', outline: 'none', fontFamily: '"DM Sans", sans-serif', color: 'var(--text)' }}
                     >
                       {CURRENCIES.map(c => <option key={c}>{c}</option>)}
                     </select>
-                    <input type="number" placeholder="0.00" min="0" step="0.01" value={form.amount} onChange={e => setForm(f => ({...f, amount: e.target.value}))} required style={{ flex: 1, minWidth: 0 }} />
+                    <input type="number" placeholder="0.00" min="0" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required style={{ flex: 1, minWidth: 0 }} />
                   </div>
                 </div>
                 <div className="form-group">
                   <label>Date</label>
-                  <input type="date" value={form.date} onChange={e => setForm(f => ({...f, date: e.target.value}))} required />
+                  <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required />
                 </div>
               </div>
               <div className="form-group">
@@ -440,7 +612,7 @@ export default function App() {
                     <button type="button" key={c.name}
                       className={`cat-chip ${form.category === c.name ? 'active' : ''}`}
                       style={form.category === c.name ? { background: c.color, color: '#fff', borderColor: c.color } : {}}
-                      onClick={() => setForm(f => ({...f, category: c.name}))}>
+                      onClick={() => setForm(f => ({ ...f, category: c.name }))}>
                       {c.emoji} {c.name}
                     </button>
                   ))}
@@ -448,9 +620,9 @@ export default function App() {
               </div>
               <div className="form-group">
                 <label>Note (optional)</label>
-                <input placeholder="Any details..." value={form.note} onChange={e => setForm(f => ({...f, note: e.target.value}))} />
+                <input placeholder="Any details..." value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
               </div>
-              <button type="submit" className="submit-btn">Add Expense</button>
+              <button type="submit" className="submit-btn">{editingId ? 'Save Changes' : 'Add Expense'}</button>
             </form>
           </div>
         </div>

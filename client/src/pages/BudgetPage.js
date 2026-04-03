@@ -4,14 +4,14 @@ import { useAuth } from '../context/AuthContext';  // ✅ add this
 import API from '../api';
 
 const CATEGORIES = [
-  { name: 'Food & Dining', color: '#FF6B6B', emoji: '🍜' },
-  { name: 'Transport', color: '#FFD93D', emoji: '🚌' },
-  { name: 'Shopping', color: '#6BCB77', emoji: '🛍️' },
-  { name: 'Entertainment', color: '#4D96FF', emoji: '🎬' },
-  { name: 'Health', color: '#FF9F1C', emoji: '💊' },
-  { name: 'Education', color: '#A855F7', emoji: '📚' },
-  { name: 'Utilities', color: '#06B6D4', emoji: '💡' },
-  { name: 'Other', color: '#94A3B8', emoji: '📦' },
+  { name: 'Food & Dining', color: '#FFB7B2', emoji: '🍜' },
+  { name: 'Transport', color: '#E2F0CB', emoji: '🚌' },
+  { name: 'Shopping', color: '#B5EAD7', emoji: '🛍️' },
+  { name: 'Entertainment', color: '#C7CEEA', emoji: '🎬' },
+  { name: 'Health', color: '#FFDAC1', emoji: '💊' },
+  { name: 'Education', color: '#D4A5A5', emoji: '📚' },
+  { name: 'Utilities', color: '#9DDCE0', emoji: '💡' },
+  { name: 'Other', color: '#B0C4DE', emoji: '📦' },
 ];
 
 const CURRENCY_SYMBOLS = {
