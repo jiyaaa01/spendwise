@@ -32,6 +32,7 @@ const CATEGORIES = [
 export const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'CAD', 'AUD', 'NZD'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+export default function App() {
   const { user, logout, updateCurrency } = useAuth();
   const [expenses, setExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
@@ -142,18 +143,15 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
     setEditingId(exp._id);
   };
 
-  // Filtered transactions
   const getBaseExpenses = () => {
     let filtered = allExpenses;
 
-    // Apply Year Filter
     if (filterYear === 'Current Year') {
       filtered = filtered.filter(e => new Date(e.date).getFullYear() === activeYear);
     } else if (filterYear !== 'All Years') {
       filtered = filtered.filter(e => new Date(e.date).getFullYear() === Number(filterYear));
     }
 
-    // Apply Month Filter
     if (filterMonth === 'Current Month') {
       filtered = filtered.filter(e => new Date(e.date).getMonth() === activeMonth);
     } else if (filterMonth !== 'All Months') {
@@ -211,7 +209,11 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
         setAllExpenses(prev => [res.data, ...prev]);
       }
 
-      setForm({ title: '', amount: '', currency: currency || 'INR', category: CATEGORIES[0].name, date: new Date().toISOString().split('T')[0], note: '' });
+      setForm({
+        title: '', amount: '', currency: currency || 'INR',
+        category: CATEGORIES[0].name,
+        date: new Date().toISOString().split('T')[0], note: ''
+      });
       setShowForm(false);
       setEditingId(null);
       setSaved(true);
@@ -228,7 +230,6 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
     } catch (err) { console.error(err); }
   };
 
-  // Export to CSV
   const exportCSV = () => {
     const headers = ['Title', `Amount (${currency})`, 'Category', 'Date', 'Note'];
     const rows = allExpenses.map(e => [
@@ -252,7 +253,12 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
   const doughnutData = {
     labels: byCategory.map(c => c.name),
-    datasets: [{ data: byCategory.map(c => c.total), backgroundColor: byCategory.map(c => c.color), borderWidth: 0, hoverOffset: 8 }]
+    datasets: [{
+      data: byCategory.map(c => c.total),
+      backgroundColor: byCategory.map(c => c.color),
+      borderWidth: 0,
+      hoverOffset: 8
+    }]
   };
 
   const barData = {
@@ -260,7 +266,8 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
     datasets: [{
       data: monthlyTotals,
       backgroundColor: MONTHS.map((_, i) => i === activeMonth ? '#6366F1' : '#E0E7FF'),
-      borderRadius: 8, borderSkipped: false,
+      borderRadius: 8,
+      borderSkipped: false,
     }]
   };
 
@@ -270,7 +277,12 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
     <form onSubmit={handleSaveExpense} className={`expense-form ${isInline ? 'expense-form--inline' : ''}`}>
       <div className="form-group">
         <label>Title</label>
-        <input placeholder="e.g. Lunch at Subway" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
+        <input
+          placeholder="e.g. Lunch at Subway"
+          value={form.title}
+          onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+          required
+        />
       </div>
       <div className="form-row">
         <div className="form-group">
@@ -279,26 +291,41 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
             <select
               value={form.currency || 'INR'}
               onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
-              style={{ padding: '10px 8px', borderRadius: '10px', border: '1.5px solid var(--border)', background: '#FAFAFA', outline: 'none', fontFamily: '"DM Sans", sans-serif', color: 'var(--text)' }}
+              style={{
+                padding: '10px 8px', borderRadius: '10px',
+                border: '1.5px solid var(--border)', background: '#FAFAFA',
+                outline: 'none', fontFamily: '"DM Sans", sans-serif', color: 'var(--text)'
+              }}
             >
               {CURRENCIES.map(c => <option key={c}>{c}</option>)}
             </select>
-            <input type="number" placeholder="0.00" min="0" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required style={{ flex: 1, minWidth: 0 }} />
+            <input
+              type="number" placeholder="0.00" min="0" step="0.01"
+              value={form.amount}
+              onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+              required style={{ flex: 1, minWidth: 0 }}
+            />
           </div>
         </div>
         <div className="form-group">
           <label>Date</label>
-          <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required />
+          <input
+            type="date" value={form.date}
+            onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+            required
+          />
         </div>
       </div>
       <div className="form-group">
         <label>Category</label>
         <div className="cat-grid">
           {CATEGORIES.map(c => (
-            <button type="button" key={c.name}
+            <button
+              type="button" key={c.name}
               className={`cat-chip ${form.category === c.name ? 'active' : ''}`}
               style={form.category === c.name ? { background: c.color, color: '#fff', borderColor: c.color } : {}}
-              onClick={() => setForm(f => ({ ...f, category: c.name }))}>
+              onClick={() => setForm(f => ({ ...f, category: c.name }))}
+            >
               {c.emoji} {c.name}
             </button>
           ))}
@@ -306,25 +333,56 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
       </div>
       <div className="form-group">
         <label>Note (optional)</label>
-        <input placeholder="Any details..." value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
+        <input
+          placeholder="Any details..."
+          value={form.note}
+          onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+        />
       </div>
       <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-        <button type="submit" className="submit-btn" style={{ flex: 1 }}>{editingId ? 'Save Changes' : 'Add Expense'}</button>
-        {isInline && <button type="button" className="cancel-btn" onClick={() => setEditingId(null)} style={{ flex: 1 }}>Cancel</button>}
+        <button type="submit" className="submit-btn" style={{ flex: 1 }}>
+          {editingId ? 'Save Changes' : 'Add Expense'}
+        </button>
+        {isInline && (
+          <button type="button" className="cancel-btn" onClick={() => setEditingId(null)} style={{ flex: 1 }}>
+            Cancel
+          </button>
+        )}
       </div>
     </form>
   );
 
-  // Sub-pages
-  if (page === 'profile') return <ProfilePage onBack={() => setPage('dashboard')} />;
-  if (page === 'budget') return <BudgetPage onBack={() => setPage('dashboard')} expenses={allExpenses} convert={convert} currencies={CURRENCIES} />;
+  // ── Sub-pages ──────────────────────────────────────────────────────────────
+
+  if (page === 'profile') {
+    return <ProfilePage onBack={() => setPage('dashboard')} />;
+  }
+
+  if (page === 'budget') {
+    return (
+      <BudgetPage
+        onBack={() => setPage('dashboard')}
+        expenses={allExpenses}
+        convert={convert}
+        currencies={CURRENCIES}
+      />
+    );
+  }
+
   if (page === 'transactions') {
     return (
       <div className="transaction-manager-page">
         <div className="profile-header">
-          <button className="back-btn" onClick={() => setPage('dashboard')}><ArrowLeft size={18} /> Back</button>
+          <button className="back-btn" onClick={() => setPage('dashboard')}>
+            <ArrowLeft size={18} /> Back
+          </button>
           <h1 className="page-title">Transaction Manager</h1>
-          <button className="icon-btn" onClick={exportCSV} title="Export CSV" style={{ marginLeft: 'auto' }}><Download size={18} /></button>
+          <button
+            className="icon-btn" onClick={exportCSV}
+            title="Export CSV" style={{ marginLeft: 'auto' }}
+          >
+            <Download size={18} />
+          </button>
         </div>
 
         <p className="budget-sub">Search, filter, and manage all your expenses.</p>
@@ -333,10 +391,22 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
         <div className="search-bar">
           <div className="search-input-wrap">
             <Search size={16} className="search-icon" />
-            <input className="search-input" placeholder="Search transactions..." value={search} onChange={e => setSearch(e.target.value)} />
-            {search && <button className="search-clear" onClick={() => setSearch('')}><X size={14} /></button>}
+            <input
+              className="search-input"
+              placeholder="Search transactions..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button className="search-clear" onClick={() => setSearch('')}>
+                <X size={14} />
+              </button>
+            )}
           </div>
-          <button className={`filter-toggle ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(s => !s)}>
+          <button
+            className={`filter-toggle ${showFilters ? 'active' : ''}`}
+            onClick={() => setShowFilters(s => !s)}
+          >
             <SlidersHorizontal size={16} /> Filters
           </button>
         </div>
@@ -377,13 +447,30 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
             </div>
             <div className="filter-group">
               <label>Min Value</label>
-              <input type="number" placeholder="0" value={filterMin} onChange={e => setFilterMin(e.target.value)} className="filter-input" />
+              <input
+                type="number" placeholder="0"
+                value={filterMin} onChange={e => setFilterMin(e.target.value)}
+                className="filter-input"
+              />
             </div>
             <div className="filter-group">
               <label>Max Value</label>
-              <input type="number" placeholder="Any" value={filterMax} onChange={e => setFilterMax(e.target.value)} className="filter-input" />
+              <input
+                type="number" placeholder="Any"
+                value={filterMax} onChange={e => setFilterMax(e.target.value)}
+                className="filter-input"
+              />
             </div>
-            <button className="filter-clear" onClick={() => { setFilterMonth('Current Month'); setFilterYear('Current Year'); setFilterCategory('All'); setFilterMin(''); setFilterMax(''); }}>
+            <button
+              className="filter-clear"
+              onClick={() => {
+                setFilterMonth('Current Month');
+                setFilterYear('Current Year');
+                setFilterCategory('All');
+                setFilterMin('');
+                setFilterMax('');
+              }}
+            >
               Clear Filters
             </button>
           </div>
@@ -413,12 +500,20 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
                     <div className="tx-cat-dot" style={{ background: cat.color }}>{cat.emoji}</div>
                     <div className="tx-info">
                       <p className="tx-title">{exp.title}</p>
-                      <p className="tx-meta">{exp.category} · {new Date(exp.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                      <p className="tx-meta">
+                        {exp.category} · {new Date(exp.date).toLocaleDateString('en-IN', {
+                          day: 'numeric', month: 'short', year: 'numeric'
+                        })}
+                      </p>
                     </div>
                     <div className="tx-right">
                       <p className="tx-amount">{displayAmount(exp.amount)}</p>
-                      <button className="tx-edit" onClick={() => startEdit(exp)} title="Edit"><Pencil size={14} /></button>
-                      <button className="tx-delete" onClick={() => setDeleteId(exp._id)}><Trash2 size={14} /></button>
+                      <button className="tx-edit" onClick={() => startEdit(exp)} title="Edit">
+                        <Pencil size={14} />
+                      </button>
+                      <button className="tx-delete" onClick={() => setDeleteId(exp._id)}>
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 );
@@ -430,6 +525,8 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
     );
   }
 
+  // ── Dashboard ──────────────────────────────────────────────────────────────
+
   return (
     <div className="app">
       <div className="noise" />
@@ -438,10 +535,11 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
       <aside className="sidebar">
         <div className="sidebar-logo">
           <span className="logo-icon">
-            {currency === 'USD' || currency === 'NZD' || currency === 'CAD' || currency === 'AUD' || currency === 'SGD' ? <DollarSign size={18} /> :
-              currency === 'EUR' ? <Euro size={18} /> :
-                currency === 'GBP' ? <PoundSterling size={18} /> :
-                  <IndianRupee size={18} />}
+            {['USD', 'NZD', 'CAD', 'AUD', 'SGD'].includes(currency)
+              ? <DollarSign size={18} />
+              : currency === 'EUR' ? <Euro size={18} />
+              : currency === 'GBP' ? <PoundSterling size={18} />
+              : <IndianRupee size={18} />}
           </span>
           <span className="logo-text">SpendWise</span>
         </div>
@@ -452,7 +550,9 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
             <p className="user-name">{user?.name}</p>
             <p className="user-email">{user?.email}</p>
           </div>
-          <button className="logout-btn" onClick={logout} title="Logout"><LogOut size={15} /></button>
+          <button className="logout-btn" onClick={logout} title="Logout">
+            <LogOut size={15} />
+          </button>
         </div>
 
         <div className="sidebar-balance">
@@ -464,14 +564,24 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
         <div className="currency-box">
           <label className="currency-label">Display Currency</label>
           <div className="select-wrap">
-            <select className="currency-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)}>
+            <select
+              className="currency-select"
+              value={currency}
+              onChange={e => handleCurrencyChange(e.target.value)}
+            >
               {CURRENCIES.map(c => <option key={c}>{c}</option>)}
             </select>
             <ChevronDown size={14} className="select-icon" />
           </div>
           {ratesLoading && <p className="rates-status loading">Fetching rates...</p>}
-          {ratesError && <p className="rates-status error">Rates unavailable · <button onClick={fetchRates}>retry</button></p>}
-          {!ratesLoading && !ratesError && Object.keys(rates).length > 0 && <p className="rates-status ok">Live rates ✓</p>}
+          {ratesError && (
+            <p className="rates-status error">
+              Rates unavailable · <button onClick={fetchRates}>retry</button>
+            </p>
+          )}
+          {!ratesLoading && !ratesError && Object.keys(rates).length > 0 && (
+            <p className="rates-status ok">Live rates ✓</p>
+          )}
         </div>
 
         <div className="month-nav">
@@ -485,16 +595,28 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
           </div>
           <div className="month-grid">
             {MONTHS.map((m, i) => (
-              <button key={m} className={`month-btn ${i === activeMonth ? 'active' : ''}`} onClick={() => setActiveMonth(i)}>{m}</button>
+              <button
+                key={m}
+                className={`month-btn ${i === activeMonth ? 'active' : ''}`}
+                onClick={() => setActiveMonth(i)}
+              >
+                {m}
+              </button>
             ))}
           </div>
         </div>
 
         {/* Nav links */}
         <div className="sidebar-nav">
-          <button className="nav-link" onClick={() => setPage('budget')}><PiggyBank size={15} /> Budget Limits</button>
-          <button className="nav-link" onClick={() => setPage('profile')}><User size={15} /> Profile Settings</button>
-          <button className="nav-link" onClick={() => setShowConverter(s => !s)}><ArrowLeftRight size={15} /> Currency Converter</button>
+          <button className="nav-link" onClick={() => setPage('budget')}>
+            <PiggyBank size={15} /> Budget Limits
+          </button>
+          <button className="nav-link" onClick={() => setPage('profile')}>
+            <User size={15} /> Profile Settings
+          </button>
+          <button className="nav-link" onClick={() => setShowConverter(s => !s)}>
+            <ArrowLeftRight size={15} /> Currency Converter
+          </button>
         </div>
       </aside>
 
@@ -506,19 +628,40 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
             <p className="page-sub">{MONTHS[activeMonth]} {activeYear}</p>
           </div>
           <div className="top-actions">
-            <button className="add-btn" onClick={() => { setForm(f => ({ ...f, currency: currency || 'INR' })); setShowForm(true); }}><Plus size={18} /> Add Expense</button>
+            <button
+              className="add-btn"
+              onClick={() => {
+                setForm(f => ({ ...f, currency: currency || 'INR' }));
+                setShowForm(true);
+              }}
+            >
+              <Plus size={18} /> Add Expense
+            </button>
           </div>
         </header>
 
-        {saved && <div className="alert alert--success dashboard-alert"><span>✓</span> Transaction updated in database!</div>}
+        {saved && (
+          <div className="alert alert--success dashboard-alert">
+            <span>✓</span> Transaction updated in database!
+          </div>
+        )}
 
         {/* Stats */}
         <div className="stats-row">
-          <StatCard icon={<Wallet size={20} />} label="Total Spent" value={displayAmount(totalMonthly)} color="indigo" />
+          <StatCard
+            icon={<Wallet size={20} />}
+            label="Total Spent"
+            value={displayAmount(totalMonthly)}
+            color="indigo"
+          />
           <StatCard
             icon={<TrendingUp size={20} />}
             label="Biggest Category"
-            value={byCategory.length ? `${catForName([...byCategory].sort((a, b) => b.total - a.total)[0].name).emoji} ${[...byCategory].sort((a, b) => b.total - a.total)[0].name}` : '—'}
+            value={
+              byCategory.length
+                ? `${catForName([...byCategory].sort((a, b) => b.total - a.total)[0].name).emoji} ${[...byCategory].sort((a, b) => b.total - a.total)[0].name}`
+                : '—'
+            }
             color="pink"
           />
           <StatCard
@@ -535,36 +678,61 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
             <div className="chart-card">
               <h3 className="chart-title">By Category</h3>
               <div className="doughnut-wrap">
-                <Doughnut data={doughnutData} options={{ plugins: { legend: { position: 'bottom', labels: { font: { family: 'DM Sans', size: 12 }, boxWidth: 12, padding: 16, color: '#64748B' } } }, cutout: '68%' }} />
+                <Doughnut
+                  data={doughnutData}
+                  options={{
+                    plugins: {
+                      legend: {
+                        position: 'bottom',
+                        labels: {
+                          font: { family: 'DM Sans', size: 12 },
+                          boxWidth: 12, padding: 16, color: '#64748B'
+                        }
+                      }
+                    },
+                    cutout: '68%'
+                  }}
+                />
               </div>
             </div>
             <div className="chart-card chart-card--wide">
               <h3 className="chart-title">Monthly Overview {activeYear}</h3>
-              <Bar data={barData} options={{
-                plugins: { legend: { display: false } },
-                scales: {
-                  x: { grid: { display: false }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#94A3B8' } },
-                  y: {
-                    grid: { color: '#F1F5F9' },
-                    ticks: {
-                      font: { family: 'DM Sans', size: 11 },
-                      color: '#94A3B8',
-                      callback: v => `${{ USD: '$', EUR: '€', GBP: '£', AED: 'د.إ', SGD: 'S$', CAD: 'CA$', AUD: 'A$', NZD: 'NZ$' }[currency] || '₹'} ${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`
+              <Bar
+                data={barData}
+                options={{
+                  plugins: { legend: { display: false } },
+                  scales: {
+                    x: {
+                      grid: { display: false },
+                      ticks: { font: { family: 'DM Sans', size: 11 }, color: '#94A3B8' }
+                    },
+                    y: {
+                      grid: { color: '#F1F5F9' },
+                      ticks: {
+                        font: { family: 'DM Sans', size: 11 },
+                        color: '#94A3B8',
+                        callback: v => {
+                          const sym = { USD: '$', EUR: '€', GBP: '£', AED: 'د.إ', SGD: 'S$', CAD: 'CA$', AUD: 'A$', NZD: 'NZ$' }[currency] || '₹';
+                          return `${sym} ${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`;
+                        }
+                      }
                     }
-                  }
-                },
-              }} />
+                  },
+                }}
+              />
             </div>
           </div>
         )}
 
-        {/* Transactions Call to Action */}
+        {/* Transactions CTA */}
         <div className="dashboard-cta">
           <div className="cta-content">
             <div className="cta-icon"><History size={24} /></div>
             <div>
               <h3 className="cta-title">Transaction History</h3>
-              <p className="cta-sub">Manage and filter through your {allExpenses.length} recorded expenses.</p>
+              <p className="cta-sub">
+                Manage and filter through your {allExpenses.length} recorded expenses.
+              </p>
             </div>
           </div>
           <button className="cta-btn" onClick={() => setPage('transactions')}>
@@ -573,18 +741,28 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
         </div>
       </main>
 
-      {/* ADD EXPENSE MODAL */}
+      {/* ADD / EDIT EXPENSE MODAL */}
       {showForm && (
         <div className="modal-overlay" onClick={() => setShowForm(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{editingId ? 'Edit Expense' : 'Add Expense'}</h2>
-              <button className="modal-close" onClick={() => { setShowForm(false); setEditingId(null); }}><X size={18} /></button>
+              <button
+                className="modal-close"
+                onClick={() => { setShowForm(false); setEditingId(null); }}
+              >
+                <X size={18} />
+              </button>
             </div>
             <form onSubmit={handleSaveExpense} className="expense-form">
               <div className="form-group">
                 <label>Title</label>
-                <input placeholder="e.g. Lunch at Subway" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
+                <input
+                  placeholder="e.g. Lunch at Subway"
+                  value={form.title}
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  required
+                />
               </div>
               <div className="form-row">
                 <div className="form-group">
@@ -593,26 +771,41 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
                     <select
                       value={form.currency || 'INR'}
                       onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
-                      style={{ padding: '10px 8px', borderRadius: '10px', border: '1.5px solid var(--border)', background: '#FAFAFA', outline: 'none', fontFamily: '"DM Sans", sans-serif', color: 'var(--text)' }}
+                      style={{
+                        padding: '10px 8px', borderRadius: '10px',
+                        border: '1.5px solid var(--border)', background: '#FAFAFA',
+                        outline: 'none', fontFamily: '"DM Sans", sans-serif', color: 'var(--text)'
+                      }}
                     >
                       {CURRENCIES.map(c => <option key={c}>{c}</option>)}
                     </select>
-                    <input type="number" placeholder="0.00" min="0" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required style={{ flex: 1, minWidth: 0 }} />
+                    <input
+                      type="number" placeholder="0.00" min="0" step="0.01"
+                      value={form.amount}
+                      onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                      required style={{ flex: 1, minWidth: 0 }}
+                    />
                   </div>
                 </div>
                 <div className="form-group">
                   <label>Date</label>
-                  <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required />
+                  <input
+                    type="date" value={form.date}
+                    onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                    required
+                  />
                 </div>
               </div>
               <div className="form-group">
                 <label>Category</label>
                 <div className="cat-grid">
                   {CATEGORIES.map(c => (
-                    <button type="button" key={c.name}
+                    <button
+                      type="button" key={c.name}
                       className={`cat-chip ${form.category === c.name ? 'active' : ''}`}
                       style={form.category === c.name ? { background: c.color, color: '#fff', borderColor: c.color } : {}}
-                      onClick={() => setForm(f => ({ ...f, category: c.name }))}>
+                      onClick={() => setForm(f => ({ ...f, category: c.name }))}
+                    >
                       {c.emoji} {c.name}
                     </button>
                   ))}
@@ -620,9 +813,15 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
               </div>
               <div className="form-group">
                 <label>Note (optional)</label>
-                <input placeholder="Any details..." value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
+                <input
+                  placeholder="Any details..."
+                  value={form.note}
+                  onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+                />
               </div>
-              <button type="submit" className="submit-btn">{editingId ? 'Save Changes' : 'Add Expense'}</button>
+              <button type="submit" className="submit-btn">
+                {editingId ? 'Save Changes' : 'Add Expense'}
+              </button>
             </form>
           </div>
         </div>
@@ -635,15 +834,28 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
             <h3><ArrowLeftRight size={16} /> Converter</h3>
             <button onClick={() => setShowConverter(false)}><X size={16} /></button>
           </div>
-          <input className="conv-input" type="number" placeholder="Amount" value={convAmount} onChange={e => setConvAmount(e.target.value)} />
+          <input
+            className="conv-input" type="number"
+            placeholder="Amount" value={convAmount}
+            onChange={e => setConvAmount(e.target.value)}
+          />
           <div className="conv-row">
             <div className="select-wrap">
-              <select value={convFrom} onChange={e => setConvFrom(e.target.value)}>{CURRENCIES.map(c => <option key={c}>{c}</option>)}</select>
+              <select value={convFrom} onChange={e => setConvFrom(e.target.value)}>
+                {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+              </select>
               <ChevronDown size={12} className="select-icon" />
             </div>
-            <button className="swap-btn" onClick={() => { setConvFrom(convTo); setConvTo(convFrom); }}><RefreshCw size={14} /></button>
+            <button
+              className="swap-btn"
+              onClick={() => { setConvFrom(convTo); setConvTo(convFrom); }}
+            >
+              <RefreshCw size={14} />
+            </button>
             <div className="select-wrap">
-              <select value={convTo} onChange={e => setConvTo(e.target.value)}>{CURRENCIES.map(c => <option key={c}>{c}</option>)}</select>
+              <select value={convTo} onChange={e => setConvTo(e.target.value)}>
+                {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+              </select>
               <ChevronDown size={12} className="select-icon" />
             </div>
           </div>
@@ -673,6 +885,8 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
     </div>
   );
 }
+
+// ── Helper Components ──────────────────────────────────────────────────────────
 
 function StatCard({ icon, label, value, color }) {
   return (
