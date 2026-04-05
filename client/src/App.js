@@ -48,10 +48,9 @@ export default function App() {
   const [deleteId, setDeleteId] = useState(null);
   const [expensesLoading, setExpensesLoading] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [page, setPage] = useState('dashboard'); // dashboard | profile | budget | transactions
+  const [page, setPage] = useState('dashboard');
   const [editingId, setEditingId] = useState(null);
 
-  // Search & filter state
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterMonth, setFilterMonth] = useState('Current Month');
@@ -216,8 +215,6 @@ export default function App() {
       });
       setShowForm(false);
       setEditingId(null);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
     } catch (err) { console.error(err); }
   };
 
@@ -521,6 +518,21 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* DELETE CONFIRM — only inside transactions page */}
+        {deleteId && (
+          <div className="modal-overlay" onClick={() => setDeleteId(null)}>
+            <div className="modal modal--sm" onClick={e => e.stopPropagation()}>
+              <h3>Delete this expense?</h3>
+              <p>This action cannot be undone.</p>
+              <div className="confirm-btns">
+                <button className="cancel-btn" onClick={() => setDeleteId(null)}>Cancel</button>
+                <button className="danger-btn" onClick={() => handleDelete(deleteId)}>Delete</button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     );
   }
@@ -639,12 +651,6 @@ export default function App() {
             </button>
           </div>
         </header>
-
-        {saved && (
-          <div className="alert alert--success dashboard-alert">
-            <span>✓</span> Transaction updated in database!
-          </div>
-        )}
 
         {/* Stats */}
         <div className="stats-row">
@@ -869,19 +875,6 @@ export default function App() {
         </div>
       )}
 
-      {/* DELETE CONFIRM */}
-      {deleteId && (
-        <div className="modal-overlay" onClick={() => setDeleteId(null)}>
-          <div className="modal modal--sm" onClick={e => e.stopPropagation()}>
-            <h3>Delete this expense?</h3>
-            <p>This action cannot be undone.</p>
-            <div className="confirm-btns">
-              <button className="cancel-btn" onClick={() => setDeleteId(null)}>Cancel</button>
-              <button className="danger-btn" onClick={() => handleDelete(deleteId)}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
